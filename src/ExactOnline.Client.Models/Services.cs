@@ -82,8 +82,8 @@ public class Services
         this.ServicesDictionary.Add(typeof(AddressState).FullName, "CRM/AddressStates");
         this.ServicesDictionary.Add(typeof(BankAccount).FullName, "CRM/BankAccounts");
         this.ServicesDictionary.Add(typeof(Contact).FullName, "CRM/Contacts");
-        this.ServicesDictionary.Add(typeof(Document).FullName, "Read/CRM/Documents");
-        this.ServicesDictionary.Add(typeof(DocumentsAttachment).FullName, "Read/CRM/DocumentsAttachments");
+//        this.ServicesDictionary.Add(typeof(Document).FullName, "Read/CRM/Documents");
+//        this.ServicesDictionary.Add(typeof(DocumentsAttachment).FullName, "Read/CRM/DocumentsAttachments");
         this.ServicesDictionary.Add(typeof(Opportunity).FullName, "CRM/Opportunities");
         this.ServicesDictionary.Add(typeof(OpportunityContact).FullName, "Read/CRM/OpportunityContacts");
         this.ServicesDictionary.Add(typeof(PrintQuotation).FullName, "CRM/PrintQuotation");
@@ -187,7 +187,7 @@ public class Services
         this.ServicesDictionary.Add(typeof(StageForDeliveryReversal).FullName, "Manufacturing/StageForDeliveryReversals");
         this.ServicesDictionary.Add(typeof(SubOrderReceipt).FullName, "Manufacturing/SubOrderReceipts");
         this.ServicesDictionary.Add(typeof(SubOrderReversal).FullName, "Manufacturing/SubOrderReversals");
-        this.ServicesDictionary.Add(typeof(TimeTransaction).FullName, "Manufacturing/TimeTransactions");
+//        this.ServicesDictionary.Add(typeof(TimeTransaction).FullName, "Manufacturing/TimeTransactions");
         this.ServicesDictionary.Add(typeof(Workcenter).FullName, "Manufacturing/Workcenters");
         this.ServicesDictionary.Add(typeof(OpeningBalanceAfterEntry).FullName, "OpeningBalance/CurrentYear/AfterEntry");
         this.ServicesDictionary.Add(typeof(OpeningBalancePreviousYearAfterEntry).FullName, "OpeningBalance/PreviousYear/AfterEntry");
@@ -260,7 +260,7 @@ public class Services
         this.ServicesDictionary.Add(typeof(SubscriptionType).FullName, "Subscription/SubscriptionTypes");
         this.ServicesDictionary.Add(typeof(AccountantInfo).FullName, "System/AccountantInfo");
         this.ServicesDictionary.Add(typeof(AvailableFeature).FullName, "System/AvailableFeatures");
-        this.ServicesDictionary.Add(typeof(Division).FullName, "System/Divisions");
+//        this.ServicesDictionary.Add(typeof(Division).FullName, "System/Divisions");
         this.ServicesDictionary.Add(typeof(User).FullName, "Users/Users");
         this.ServicesDictionary.Add(typeof(UserRole).FullName, "Users/UserRoles");
         this.ServicesDictionary.Add(typeof(UserRolesPerDivision).FullName, "Users/UserRolesPerDivision");

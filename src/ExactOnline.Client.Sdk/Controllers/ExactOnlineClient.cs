@@ -1,8 +1,6 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
-
-using ExactOnline.Client.Sdk.Delegates;
 using ExactOnline.Client.Sdk.Helpers;
 using ExactOnline.Client.Sdk.Models;
 
@@ -27,16 +25,17 @@ namespace ExactOnline.Client.Sdk.Controllers
 
         #region Constructors
 
-        /// <summary>
-        /// Create instance of ExactClient
-        /// </summary>
-        /// <param name="exactOnlineUrl">The Exact Online URL for your country</param>
-        /// <param name="division">Division number</param>
-        /// <param name="accesstokenDelegate">Delegate that will be executed the access token is expired</param>
-        public ExactOnlineClient(string exactOnlineUrl, int division, AccessTokenManagerDelegate accesstokenDelegate)
+	    /// <summary>
+	    /// Create instance of ExactClient
+	    /// </summary>
+	    /// <param name="exactOnlineUrl">The Exact Online URL for your country</param>
+	    /// <param name="division">Division number</param>
+	    /// <param name="accesstokenDelegate">Delegate that will be executed the access token is expired</param>
+	    /// <param name="refreshTokenDelegate">Delegate that will retrieve the amount of retries (a counter), and should return true if the token is refreshed</param>
+	    public ExactOnlineClient(string exactOnlineUrl, int division, Func<string> accesstokenDelegate, Func<int, bool> refreshTokenDelegate = null)
 		{
 			// Set culture for correct deserializing of API Response (comma and points)
-			_apiConnector = new ApiConnector(accesstokenDelegate, this);
+			_apiConnector = new ApiConnector(accesstokenDelegate, this, refreshTokenDelegate);
 			//Thread.CurrentThread.CurrentCulture = new CultureInfo("en-US");
 
 			if (!exactOnlineUrl.EndsWith("/")) exactOnlineUrl += "/";
@@ -53,7 +52,7 @@ namespace ExactOnline.Client.Sdk.Controllers
 		/// </summary>
 		/// <param name="exactOnlineUrl">{URI}/</param>
 		/// <param name="accesstokenDelegate">Valid oAuth AccessToken</param>
-		public ExactOnlineClient(string exactOnlineUrl, AccessTokenManagerDelegate accesstokenDelegate)
+		public ExactOnlineClient(string exactOnlineUrl, Func<string> accesstokenDelegate)
 			: this(exactOnlineUrl, 0, accesstokenDelegate)
 		{
 		}
@@ -69,7 +68,7 @@ namespace ExactOnline.Client.Sdk.Controllers
 		public Me CurrentMe()
 		{
 			var conn = new ApiConnection(_apiConnector, _exactOnlineApiUrl + "current/Me");
-			string response = conn.Get("$select=CurrentDivision");
+			var response = conn.Get("");
 			response = ApiResponseCleaner.GetJsonArray(response);
 			var converter = new EntityConverter();
 			var currentMe = converter.ConvertJsonArrayToObjectList<Me>(response);

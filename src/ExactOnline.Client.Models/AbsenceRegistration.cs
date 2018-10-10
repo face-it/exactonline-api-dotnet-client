@@ -7,8 +7,10 @@ namespace ExactOnline.Client.Models.HRM
     [DataServiceKey("ID")]
     public class AbsenceRegistration
     {
-        /// <summary>Collection of absence registration transactions</summary>
-        public IEnumerable<HRM.AbsenceRegistrationTransaction> AbsenceRegistrationTransactions { get; set; }
+        // Fijn, $expand werkt niet...
+
+//        /// <summary>Collection of absence registration transactions</summary>
+//        public IEnumerable<HRM.AbsenceRegistrationTransaction> AbsenceRegistrationTransactions { get; set; }
         /// <summary>Absence cause, only supported for the Netherland legislation</summary>
         public Int16? Cause { get; set; }
         /// <summary>Code for the absence cause, only supported for the Netherland legislation</summary>

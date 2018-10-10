@@ -1,5 +1,4 @@
 ﻿using ExactOnline.Client.Sdk.Controllers;
-using ExactOnline.Client.Sdk.Delegates;
 using ExactOnline.Client.Sdk.Enums;
 using ExactOnline.Client.Sdk.Exceptions;
 using ExactOnline.Client.Sdk.Interfaces;
@@ -17,20 +16,24 @@ namespace ExactOnline.Client.Sdk.Helpers
 	/// </summary>
 	public class ApiConnector : IApiConnector
 	{
-		private readonly AccessTokenManagerDelegate _accessTokenDelegate;
+		private readonly Func<string> _accessTokenDelegate;
         private readonly ExactOnlineClient _client;
+	    private readonly Func<int, bool> _refreshTokenDelegate;
 
-		#region Constructor
+	    #region Constructor
 
-		/// <summary>
-		/// Creates new instance of ApiConnector
-		/// </summary>
-		/// <param name="accessTokenDelegate">Valid oAuth Access Token</param>
-		public ApiConnector(AccessTokenManagerDelegate accessTokenDelegate, ExactOnlineClient client)
+	    /// <summary>
+	    /// Creates new instance of ApiConnector
+	    /// </summary>
+	    /// <param name="accessTokenDelegate">Valid oAuth Access Token</param>
+	    /// <param name="client"></param>
+	    /// <param name="refreshTokenDelegate"></param>
+	    public ApiConnector(Func<string> accessTokenDelegate, ExactOnlineClient client,
+	        Func<int, bool> refreshTokenDelegate = null)
 		{
             _client = client;
-			if (accessTokenDelegate == null) throw new ArgumentException("accessTokenDelegate");
-			_accessTokenDelegate = accessTokenDelegate;
+		    _refreshTokenDelegate = refreshTokenDelegate;
+		    _accessTokenDelegate = accessTokenDelegate ?? throw new ArgumentException("accessTokenDelegate");
 		}
 
 		#endregion
@@ -219,33 +222,46 @@ namespace ExactOnline.Client.Sdk.Helpers
 
             WebResponse response = null;
 
-			// Get response. If this fails: Throw the correct Exception (for testability)
-			try
-			{
-				response = request.GetResponse();
-                
-				using (Stream responseStream = response.GetResponseStream())
-				{
-					if (responseStream != null)
-					{
-						var reader = new StreamReader(responseStream);
-						responseValue = reader.ReadToEnd();
-					}
-				}
-			}
-			catch (WebException ex)
-			{
-                response = ex.Response;
-                ThrowSpecificException(ex);
+		    var hasToken = true;
+		    var retries = 0;
+		    while (hasToken)
+		    {
+		        // Get response. If this fails: Throw the correct Exception (for testability)
+		        try
+		        {
+		            response = request.GetResponse();
 
-				throw;
-			}
-            finally
-            {
-                SetEolResponseHeaders(response);
-            }
+		            using (var responseStream = response.GetResponseStream())
+		            {
+		                if (responseStream != null)
+		                {
+		                    var reader = new StreamReader(responseStream);
+		                    responseValue = reader.ReadToEnd();
+		                }
+		            }
+		            break;
+		        }
+		        catch (WebException ex)
+		        {
+		            var statusCode = ((HttpWebResponse) ex.Response).StatusCode;
+		            if (statusCode == HttpStatusCode.Forbidden || statusCode == HttpStatusCode.Unauthorized)
+		            {
+		                hasToken = _refreshTokenDelegate?.Invoke(retries++) ?? false;
+		                continue;
+		            }
 
-			Debug.WriteLine(responseValue);
+		            response = ex.Response;
+		            ThrowSpecificException(ex);
+
+		            throw;
+		        }
+		        finally
+		        {
+		            SetEolResponseHeaders(response);
+		        }
+		    }
+
+		    Debug.WriteLine(responseValue);
 			Debug.WriteLine("");
 
 			return responseValue;
