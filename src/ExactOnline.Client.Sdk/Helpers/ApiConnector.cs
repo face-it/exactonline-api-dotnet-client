@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Text;
+using ExactOnline.Client.Sdk.Models;
 
 namespace ExactOnline.Client.Sdk.Helpers
 {
@@ -52,10 +53,14 @@ namespace ExactOnline.Client.Sdk.Helpers
 
 			var request = CreateRequest(endpoint, oDataQuery, RequestTypeEnum.GET);
 
-			Debug.Write("GET ");
-			Debug.WriteLine(request.RequestUri);
+			Trace.Write("GET ");
+			Trace.WriteLine(request.RequestUri);
+            foreach (var key in request.Headers.AllKeys)
+            {
+				Trace.WriteLine($"{key}: {request.Headers[key]}");
+            }
 
-			return GetResponse(request);
+            return GetResponse(request);
         }
 
         /// <summary>
@@ -69,8 +74,8 @@ namespace ExactOnline.Client.Sdk.Helpers
 
             var request = CreateRequest(endpoint, null, RequestTypeEnum.GET);
 
-            Debug.Write("GET ");
-            Debug.WriteLine(request.RequestUri);
+            Trace.Write("GET (file request) ");
+            Trace.WriteLine(request.RequestUri);
 
             return GetResponseFile(request);
         }
@@ -103,9 +108,9 @@ namespace ExactOnline.Client.Sdk.Helpers
 				throw new BadRequestException(); // Post request needs data
 			}
 
-			Debug.Write("POST ");
-			Debug.WriteLine(request.RequestUri);
-			Debug.WriteLine(postdata);
+			Trace.Write("POST ");
+			Trace.WriteLine(request.RequestUri);
+			Trace.WriteLine(postdata);
 
 			return GetResponse(request);
 		}
@@ -138,9 +143,9 @@ namespace ExactOnline.Client.Sdk.Helpers
 				throw new BadRequestException();
 			}
 
-			Debug.Write("PUT ");
-			Debug.WriteLine(request.RequestUri);
-			Debug.WriteLine(putData);
+			Trace.Write("PUT ");
+			Trace.WriteLine(request.RequestUri);
+			Trace.WriteLine(putData);
 
 			return GetResponse(request);
 		}
@@ -156,8 +161,8 @@ namespace ExactOnline.Client.Sdk.Helpers
 
 			var request = CreateRequest(endpoint, null, RequestTypeEnum.DELETE);
 
-			Debug.Write("DELETE ");
-			Debug.WriteLine(request.RequestUri);
+			Trace.Write("DELETE ");
+			Trace.WriteLine(request.RequestUri);
 
 			return GetResponse(request);
 		}
@@ -218,13 +223,12 @@ namespace ExactOnline.Client.Sdk.Helpers
 			// Grab the response
 			var responseValue = string.Empty;
 
-			Debug.WriteLine("RESPONSE");
+			Trace.WriteLine("RESPONSE");
 
             WebResponse response = null;
 
-		    var hasToken = true;
-		    var retries = 0;
-		    while (hasToken)
+            var retries = 0;
+		    while (true)
 		    {
 		        // Get response. If this fails: Throw the correct Exception (for testability)
 		        try
@@ -244,13 +248,13 @@ namespace ExactOnline.Client.Sdk.Helpers
 		        catch (WebException ex)
 		        {
 		            var statusCode = ((HttpWebResponse) ex.Response).StatusCode;
-		            if (statusCode == HttpStatusCode.Forbidden || statusCode == HttpStatusCode.Unauthorized)
-		            {
-		                hasToken = _refreshTokenDelegate?.Invoke(retries++) ?? false;
-		                continue;
-		            }
+                    if ((statusCode == HttpStatusCode.Forbidden || statusCode == HttpStatusCode.Unauthorized) &&
+                        _refreshTokenDelegate?.Invoke(retries++) == true)
+                    {
+                        continue;
+                    }
 
-		            response = ex.Response;
+                    response = ex.Response;
 		            ThrowSpecificException(ex);
 
 		            throw;
@@ -261,8 +265,8 @@ namespace ExactOnline.Client.Sdk.Helpers
 		        }
 		    }
 
-		    Debug.WriteLine(responseValue);
-			Debug.WriteLine("");
+		    Trace.WriteLine(responseValue);
+			Trace.WriteLine("");
 
 			return responseValue;
         }
@@ -294,7 +298,7 @@ namespace ExactOnline.Client.Sdk.Helpers
         
         private Stream GetResponseFile(HttpWebRequest request)
         {
-            Debug.WriteLine("RESPONSE");
+            Trace.WriteLine("RESPONSE");
             WebResponse response = null;
 
             // Get response. If this fails: Throw the correct Exception (for testability)
@@ -320,31 +324,37 @@ namespace ExactOnline.Client.Sdk.Helpers
         private void ThrowSpecificException(WebException ex)
         {
             var statusCode = (((HttpWebResponse)ex.Response).StatusCode);
-            Debug.WriteLine(ex.Message);
+            Trace.WriteLine(ex.Message);
 
             var messageFromServer = new StreamReader(ex.Response.GetResponseStream()).ReadToEnd();
-            Debug.WriteLine(messageFromServer);
-            Debug.WriteLine("");
+            Trace.WriteLine(messageFromServer);
+            Trace.WriteLine("");
 
-            switch (statusCode)
+            var serverMessage = string.IsNullOrEmpty(messageFromServer)
+                ? null
+                : JsonConvert.DeserializeObject<ServerMessage>(messageFromServer);
+
+            var msg = serverMessage?.Error?.Message?.Value ?? ex.Message;
+
+			switch (statusCode)
             {
                 case HttpStatusCode.BadRequest: // 400
                 case HttpStatusCode.MethodNotAllowed: // 405
-                    throw new BadRequestException(ex.Message, ex);
+                    throw new BadRequestException(msg, ex);
 
                 case HttpStatusCode.Unauthorized: //401
-                    throw new UnauthorizedException(ex.Message, ex); // 401
+                    throw new UnauthorizedException(msg, ex); // 401
 
                 case HttpStatusCode.Forbidden:
-                    throw new ForbiddenException(ex.Message, ex); // 403
+                    throw new ForbiddenException(msg, ex); // 403
 
                 case HttpStatusCode.NotFound:
-                    throw new NotFoundException(ex.Message, ex); // 404
+                    throw new NotFoundException(msg, ex); // 404
 
                 case HttpStatusCode.InternalServerError: // 500
-                    throw new InternalServerErrorException(messageFromServer, ex);
+                    throw new InternalServerErrorException(msg, ex);
 
-                case (HttpStatusCode)429: // 429: too many requests
+                case (HttpStatusCode) 429: // 429: too many requests
                     throw new TooManyRequestsException(ex.Message, ex);
             }
         }
@@ -362,8 +372,8 @@ namespace ExactOnline.Client.Sdk.Helpers
 
 			var request = CreateRequest(uri, oDataQuery, RequestTypeEnum.GET, null);
 
-			Debug.WriteLine("GET ");
-			Debug.WriteLine(request.RequestUri);
+			Trace.WriteLine("GET ");
+			Trace.WriteLine(request.RequestUri);
 
 			return GetResponse(request);
 		}
