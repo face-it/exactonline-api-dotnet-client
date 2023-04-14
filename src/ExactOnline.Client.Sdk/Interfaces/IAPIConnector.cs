@@ -1,22 +1,23 @@
 ﻿using System.IO;
+using System.Threading.Tasks;
 
 namespace ExactOnline.Client.Sdk.Interfaces
 {
 	public interface IApiConnector
 	{
-		string DoGetRequest(string endpoint, string parameters);
-	    Stream DoGetFileRequest(string endpoint);
+		Task<string> DoGetRequest(string endpoint, string parameters);
+	    Task<Stream> DoGetFileRequest(string endpoint);
 
 
-        string DoPostRequest(string endpoint, string postdata);
+        Task<string> DoPostRequest(string endpoint, string postdata);
 
-		string DoPutRequest(string endpoint, string putData);
+		Task<string> DoPutRequest(string endpoint, string putData);
 
-		string DoDeleteRequest(string endpoint);
+		Task<string> DoDeleteRequest(string endpoint);
 
-		string DoCleanRequest(string uri); // Request without Content-Type for $count function
-		string DoCleanRequest(string uri, string oDataQuery); // Request without Content-Type for $count function, including parameters
+		Task<string> DoCleanRequest(string uri); // Request without Content-Type for $count function
+		Task<string> DoCleanRequest(string uri, string oDataQuery); // Request without Content-Type for $count function, including parameters
 
-		int GetCurrentDivision(string website);
+		Task<int> GetCurrentDivision(string website);
 	}
 }

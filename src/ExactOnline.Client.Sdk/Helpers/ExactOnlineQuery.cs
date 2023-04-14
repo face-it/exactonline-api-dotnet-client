@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Threading.Tasks;
 
 namespace ExactOnline.Client.Sdk.Helpers
 {
@@ -125,7 +126,7 @@ namespace ExactOnline.Client.Sdk.Helpers
                 queryParts.Add(_orderby);
             }
 
-            string query = string.Join("&", queryParts);
+            var query = string.Join("&", queryParts);
 
             return query;
         }
@@ -147,9 +148,9 @@ namespace ExactOnline.Client.Sdk.Helpers
         {
             if (fields != null && fields.Length > 0)
             {
-                string select = String.Join(",", fields);
+                var select = string.Join(",", fields);
 
-                if (String.IsNullOrEmpty(_select))
+                if (string.IsNullOrEmpty(_select))
                     _select = "$select=" + select;
                 else
                     _select += ',' + select;
@@ -208,9 +209,36 @@ namespace ExactOnline.Client.Sdk.Helpers
         {
             if (orderby != null && orderby.Length > 0)
             {
-                string orderbyclause = String.Join(",", orderby);
+                var orderbyclause = string.Join(",", orderby);
 
-                if (String.IsNullOrEmpty(_orderby))
+                if (string.IsNullOrEmpty(_orderby))
+                    _orderby = "$orderby=" + orderbyclause;
+                else
+                    _orderby += ',' + orderbyclause;
+            }
+            return this;
+        }
+
+        /// <summary>
+        /// Specify the field to order by
+        /// </summary>
+        /// <param name="orderby"></param>
+        public ExactOnlineQuery<T> OrderByDescending(Expression<Func<T, object>> orderby)
+        {
+            return OrderByDescending(TransformExpressionToODataFormat(orderby.Body));
+        }
+
+        /// <summary>
+        /// Specify the field(s) to order by
+        /// </summary>
+        /// <param name="orderby"></param>
+        public ExactOnlineQuery<T> OrderByDescending(params string[] orderby)
+        {
+            if (orderby != null && orderby.Length > 0)
+            {
+                var orderbyclause = string.Join("+desc,", orderby);
+
+                if (string.IsNullOrEmpty(_orderby))
                     _orderby = "$orderby=" + orderbyclause;
                 else
                     _orderby += ',' + orderbyclause;
@@ -231,64 +259,54 @@ namespace ExactOnline.Client.Sdk.Helpers
         /// <summary>
         /// Count the amount of entities in the the entity
         /// </summary>
-        public int Count()
+        public Task<int> Count()
         {
             return _controller.Count(CreateODataQuery(false));
-        }
-
-
-        /// <summary>
-        /// Returns a List of entities using the specified query
-        /// </summary>
-        public List<T> Get()
-        {
-            string skipToken = string.Empty;
-            return Get(ref skipToken);
         }
 
         /// <summary>
         /// Returns a List of entities using the specified query.
         /// </summary>
         /// <param name="skipToken">The variable to store the skiptoken in</param>
-        public List<T> Get(ref string skiptoken)
+        public Task<GetResult<T>> Get(string skiptoken)
         {
             FormulateSkipToken(skiptoken);
-            return _controller.Get(CreateODataQuery(true), ref skiptoken);
+            return _controller.Get(CreateODataQuery(true), skiptoken);
         }
 
         /// <summary>
         /// Returns one instance of an entity using the specified identifier
         /// </summary>
-        public T GetEntity(string identifier)
+        public Task<T> GetEntity(string identifier)
         {
             if (string.IsNullOrEmpty(identifier)) throw new ArgumentException("Get entity: Identifier cannot be empty");
-            string query = CreateODataQuery(false);
+            var query = CreateODataQuery(false);
             return _controller.GetEntity(identifier, query);
         }
 
         /// <summary>
         /// Returns one instance of an entity using the specified identifier
         /// </summary>
-        public T GetEntity(Guid identifier)
+        public Task<T> GetEntity(Guid identifier)
         {
             if (identifier == Guid.Empty) throw new ArgumentException("Get entity: Identifier cannot be empty");
-            string query = CreateODataQuery(false);
+            var query = CreateODataQuery(false);
             return _controller.GetEntity(identifier.ToString(), query);
         }
 
         /// <summary>
         /// Returns one instance of an entity using the specified identifier
         /// </summary>
-        public T GetEntity(int identifier)
+        public Task<T> GetEntity(int identifier)
         {
-            string query = CreateODataQuery(false);
+            var query = CreateODataQuery(false);
             return _controller.GetEntity(identifier.ToString(CultureInfo.InvariantCulture), query);
         }
 
         /// <summary>
         /// Updates the specified entity
         /// </summary>
-        public Boolean Update(T entity)
+        public Task<bool> Update(T entity)
         {
             if (entity == null) throw new ArgumentException("Update entity: Entity cannot be null");
             return _controller.Update(entity);
@@ -297,7 +315,7 @@ namespace ExactOnline.Client.Sdk.Helpers
         /// <summary>
         /// Deletes the specified entity
         /// </summary>
-        public Boolean Delete(T entity)
+        public Task<bool> Delete(T entity)
         {
             if (entity == null) throw new ArgumentException("Delete entity: Entity cannot be null");
             return _controller.Delete(entity);
@@ -306,10 +324,10 @@ namespace ExactOnline.Client.Sdk.Helpers
         /// <summary>
         /// Inserts the specified entity into Exact Online
         /// </summary>
-        public Boolean Insert(ref T entity)
+        public Task<Tuple<bool, T>> Insert(T entity)
         {
             if (entity == null) throw new ArgumentException("Insert entity: Entity cannot be null");
-            return _controller.Create(ref entity);
+            return _controller.Create(entity);
         }
 
         /// <summary>
@@ -341,7 +359,7 @@ namespace ExactOnline.Client.Sdk.Helpers
             }
 
             string arguments = null;
-            if (listArguments.Count > 0) arguments = "," + String.Join(",", listArguments);
+            if (listArguments.Count > 0) arguments = "," + string.Join(",", listArguments);
 
             return $"{mce.Method.Name.ToLower()}({TransformExpressionToODataFormat(mce.Object)}{arguments})";
         }

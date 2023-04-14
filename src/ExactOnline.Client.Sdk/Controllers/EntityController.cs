@@ -4,6 +4,7 @@ using ExactOnline.Client.Sdk.Delegates;
 using ExactOnline.Client.Sdk.Helpers;
 using ExactOnline.Client.Sdk.Interfaces;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace ExactOnline.Client.Sdk.Controllers
 {
@@ -87,7 +88,7 @@ namespace ExactOnline.Client.Sdk.Controllers
 		/// Updates the entity
 		/// </summary>
 		/// <returns>True if the entity is updated</returns>
-		public Boolean Update(object entity)
+		public async Task<bool> Update(object entity)
 		{
 			// Convert object to json
 			var converter = new EntityConverter();
@@ -103,7 +104,7 @@ namespace ExactOnline.Client.Sdk.Controllers
 			Boolean returnValue = false;
 
 			// Update and set _originalentity to current entity (_entity)
-			if (_connection.Put(_keyName, _identifier, json))
+			if (await _connection.Put(_keyName, _identifier, json))
 			{
 				returnValue = true;
 				OriginalEntity = Clone(entity);
@@ -115,7 +116,7 @@ namespace ExactOnline.Client.Sdk.Controllers
 		/// Deletes the entity
 		/// </summary>
 		/// <returns>True if the entity is updated</returns>
-		public Boolean Delete()
+		public Task<bool> Delete()
 		{
 			return _connection.Delete(_keyName, _identifier);
 

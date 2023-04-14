@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using ExactOnline.Client.Sdk.Helpers;
 using ExactOnline.Client.Sdk.Models;
 
@@ -18,7 +19,7 @@ namespace ExactOnline.Client.Sdk.Controllers
 		// https://start.exactonline.nl/api/v1
 		private readonly string _exactOnlineApiUrl;
 
-		private readonly ControllerList _controllers;
+		private ControllerList _controllers;
 		private int _division;
 
         public EolResponseHeader EolResponseHeader { get; internal set; }
@@ -29,46 +30,36 @@ namespace ExactOnline.Client.Sdk.Controllers
 	    /// Create instance of ExactClient
 	    /// </summary>
 	    /// <param name="exactOnlineUrl">The Exact Online URL for your country</param>
-	    /// <param name="division">Division number</param>
 	    /// <param name="accesstokenDelegate">Delegate that will be executed the access token is expired</param>
 	    /// <param name="refreshTokenDelegate">Delegate that will retrieve the amount of retries (a counter), and should return true if the token is refreshed</param>
-	    public ExactOnlineClient(string exactOnlineUrl, int division, Func<string> accesstokenDelegate, Func<int, bool> refreshTokenDelegate = null)
+	    public ExactOnlineClient(string exactOnlineUrl, Func<string> accesstokenDelegate, Func<int, bool> refreshTokenDelegate = null, Action<double> delayFunc = null)
 		{
-			// Set culture for correct deserializing of API Response (comma and points)
-			_apiConnector = new ApiConnector(accesstokenDelegate, this, refreshTokenDelegate);
-			//Thread.CurrentThread.CurrentCulture = new CultureInfo("en-US");
+			_apiConnector = new ApiConnector(accesstokenDelegate, this, refreshTokenDelegate, delayFunc);
 
 			if (!exactOnlineUrl.EndsWith("/")) exactOnlineUrl += "/";
 			_exactOnlineApiUrl = exactOnlineUrl + "api/v1/";
-
-			_division = (division > 0) ? division : GetDivision();
-			string serviceRoot = _exactOnlineApiUrl + _division + "/";
-
-			_controllers = new ControllerList(_apiConnector, serviceRoot);
 		}
+		
+        public async Task Initialize(int division)
+        {
+            _division = (division > 0) ? division : await GetDivision();
 
-		/// <summary>
-		/// Create instance of ExactClient
-		/// </summary>
-		/// <param name="exactOnlineUrl">{URI}/</param>
-		/// <param name="accesstokenDelegate">Valid oAuth AccessToken</param>
-		public ExactOnlineClient(string exactOnlineUrl, Func<string> accesstokenDelegate)
-			: this(exactOnlineUrl, 0, accesstokenDelegate)
-		{
-		}
+            string serviceRoot = _exactOnlineApiUrl + _division + "/";
+            _controllers = new ControllerList(_apiConnector, serviceRoot);
+        }
 
-		#endregion
+        #endregion
 
-		#region Public methods
+        #region Public methods
 
-		/// <summary>
-		/// Returns the current user data
-		/// </summary>
-		/// <returns>Me entity</returns>
-		public Me CurrentMe()
+        /// <summary>
+        /// Returns the current user data
+        /// </summary>
+        /// <returns>Me entity</returns>
+        public async Task<Me> CurrentMe()
 		{
 			var conn = new ApiConnection(_apiConnector, _exactOnlineApiUrl + "current/Me");
-			var response = conn.Get("");
+			var response = await conn.Get("");
 			response = ApiResponseCleaner.GetJsonArray(response);
 			var converter = new EntityConverter();
 			var currentMe = converter.ConvertJsonArrayToObjectList<Me>(response);
@@ -79,24 +70,27 @@ namespace ExactOnline.Client.Sdk.Controllers
         /// returns the attachment for the given url
         /// </summary>
         /// <returns>Stream</returns>
-        public Stream GetAttachment(string url)
+        public async Task<Stream> GetAttachment(string url)
         {
+            if (_controllers == null)
+                await Initialize(0);
+
             var conn = new ApiConnection(_apiConnector, url);
-            return conn.GetFile();
+            return await conn.GetFile();
         }
 
         /// <summary>
         /// return the division number of the current user
         /// </summary>
         /// <returns>Division number</returns>
-        public int GetDivision()
+        public async Task<int> GetDivision()
 		{
 			if (_division > 0)
 			{
 				return _division;
 			}
 
-			var currentMe = CurrentMe();
+			var currentMe = await CurrentMe();
 			if (currentMe != null)
 			{
 				_division = currentMe.CurrentDivision;

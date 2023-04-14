@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Text;
+using System.Threading.Tasks;
 using ExactOnline.Client.Sdk.Models;
 
 namespace ExactOnline.Client.Sdk.Helpers
@@ -17,7 +18,8 @@ namespace ExactOnline.Client.Sdk.Helpers
 	/// </summary>
 	public class ApiConnector : IApiConnector
 	{
-		private readonly Func<string> _accessTokenDelegate;
+        private readonly Action<double> _delayFunc;
+        private readonly Func<string> _accessTokenDelegate;
         private readonly ExactOnlineClient _client;
 	    private readonly Func<int, bool> _refreshTokenDelegate;
 
@@ -29,13 +31,15 @@ namespace ExactOnline.Client.Sdk.Helpers
 	    /// <param name="accessTokenDelegate">Valid oAuth Access Token</param>
 	    /// <param name="client"></param>
 	    /// <param name="refreshTokenDelegate"></param>
+	    /// <param name="delayFunc"></param>
 	    public ApiConnector(Func<string> accessTokenDelegate, ExactOnlineClient client,
-	        Func<int, bool> refreshTokenDelegate = null)
+	        Func<int, bool> refreshTokenDelegate = null, Action<double> delayFunc = null)
 		{
             _client = client;
 		    _refreshTokenDelegate = refreshTokenDelegate;
 		    _accessTokenDelegate = accessTokenDelegate ?? throw new ArgumentException("accessTokenDelegate");
-		}
+            _delayFunc = delayFunc;
+        }
 
 		#endregion
 
@@ -47,11 +51,11 @@ namespace ExactOnline.Client.Sdk.Helpers
 		/// <param name="endpoint">{URI}/{Division}/{Resource}/{Entity}</param>
 		/// <param name="oDataQuery">oData Querystring</param>
 		/// <returns>String with API Response in Json Format</returns>
-		public string DoGetRequest(string endpoint, string oDataQuery)
+		public async Task<string> DoGetRequest(string endpoint, string oDataQuery)
 		{
 			if (string.IsNullOrEmpty(endpoint)) throw new ArgumentException("Cannot perform request with empty endpoint");
 
-			var request = CreateRequest(endpoint, oDataQuery, RequestTypeEnum.GET);
+			var request = await CreateRequest(endpoint, oDataQuery, RequestTypeEnum.GET);
 
 			Trace.Write("GET ");
 			Trace.WriteLine(request.RequestUri);
@@ -60,7 +64,7 @@ namespace ExactOnline.Client.Sdk.Helpers
 				Trace.WriteLine($"{key}: {request.Headers[key]}");
             }
 
-            return GetResponse(request);
+            return await GetResponse(request);
         }
 
         /// <summary>
@@ -68,16 +72,16 @@ namespace ExactOnline.Client.Sdk.Helpers
         /// </summary>
         /// <param name="endpoint">full url</param>
         /// <returns>Stream </returns>
-        public Stream DoGetFileRequest(string endpoint)
+        public async Task<Stream> DoGetFileRequest(string endpoint)
         {
             if (string.IsNullOrEmpty(endpoint)) throw new ArgumentException("Cannot perform request with empty endpoint");
 
-            var request = CreateRequest(endpoint, null, RequestTypeEnum.GET);
+            var request = await CreateRequest(endpoint, null, RequestTypeEnum.GET);
 
             Trace.Write("GET (file request) ");
             Trace.WriteLine(request.RequestUri);
 
-            return GetResponseFile(request);
+            return await GetResponseFile(request);
         }
 
         /// <summary>
@@ -86,11 +90,11 @@ namespace ExactOnline.Client.Sdk.Helpers
         /// <param name="endpoint">{URI}/{Division}/{Resource}/{Entity}</param>
         /// <param name="postdata">String containing data of new entity in Json format</param>
         /// <returns>String with API Response in Json Format</returns>
-        public string DoPostRequest(string endpoint, string postdata)
+        public async Task<string> DoPostRequest(string endpoint, string postdata)
 		{
 			if (string.IsNullOrEmpty(endpoint) || string.IsNullOrEmpty(postdata)) throw new ArgumentException("Cannot perform request with empty endpoint or postdata");
 
-			var request = CreateRequest(endpoint, null, RequestTypeEnum.POST);
+			var request = await CreateRequest(endpoint, null, RequestTypeEnum.POST);
 
 			// Add POST data to the request
 			if (!string.IsNullOrEmpty(postdata))
@@ -100,7 +104,7 @@ namespace ExactOnline.Client.Sdk.Helpers
 
 				using (var writeStream = request.GetRequestStream())
 				{
-					writeStream.Write(bytes, 0, bytes.Length);
+					await writeStream.WriteAsync(bytes, 0, bytes.Length);
 				}
 			}
 			else
@@ -112,7 +116,7 @@ namespace ExactOnline.Client.Sdk.Helpers
 			Trace.WriteLine(request.RequestUri);
 			Trace.WriteLine(postdata);
 
-			return GetResponse(request);
+			return await GetResponse(request);
 		}
 
 		/// <summary>
@@ -121,11 +125,11 @@ namespace ExactOnline.Client.Sdk.Helpers
 		/// <param name="endpoint">{URI}/{Division}/{Resource}/{Entity}</param>
 		/// <param name="putData">String containing updated entity data in Json format</param>
 		/// <returns>String with API Response in Json Format</returns>
-		public string DoPutRequest(string endpoint, string putData)
+		public async Task<string> DoPutRequest(string endpoint, string putData)
 		{
 			if (string.IsNullOrEmpty(endpoint) || string.IsNullOrEmpty(putData)) throw new ArgumentException("Cannot perform request with empty endpoint or putData");
 
-			var request = CreateRequest(endpoint, null, RequestTypeEnum.PUT);
+			var request = await CreateRequest(endpoint, null, RequestTypeEnum.PUT);
 
 			if (!string.IsNullOrEmpty(putData))
 			{
@@ -134,7 +138,7 @@ namespace ExactOnline.Client.Sdk.Helpers
 
 				using (var writeStream = request.GetRequestStream())
 				{
-					writeStream.Write(bytes, 0, bytes.Length);
+					await writeStream.WriteAsync(bytes, 0, bytes.Length);
 				}
 			}
 			else
@@ -147,7 +151,7 @@ namespace ExactOnline.Client.Sdk.Helpers
 			Trace.WriteLine(request.RequestUri);
 			Trace.WriteLine(putData);
 
-			return GetResponse(request);
+			return await GetResponse(request);
 		}
 
 		/// <summary>
@@ -155,16 +159,16 @@ namespace ExactOnline.Client.Sdk.Helpers
 		/// </summary>
 		/// <param name="endpoint">{URI}/{Division}/{Resource}/{Entity}</param>
 		/// <returns>String with API Response in Json Format</returns>
-		public string DoDeleteRequest(string endpoint)
+		public async Task<string> DoDeleteRequest(string endpoint)
 		{
 			if (string.IsNullOrEmpty(endpoint)) throw new ArgumentException("Cannot perform request with empty endpoint");
 
-			var request = CreateRequest(endpoint, null, RequestTypeEnum.DELETE);
+			var request = await CreateRequest(endpoint, null, RequestTypeEnum.DELETE);
 
 			Trace.Write("DELETE ");
 			Trace.WriteLine(request.RequestUri);
 
-			return GetResponse(request);
+			return await GetResponse(request);
 		}
 
 		/// <summary>
@@ -172,7 +176,7 @@ namespace ExactOnline.Client.Sdk.Helpers
 		/// </summary>
 		/// <param name="uri"></param>
 		/// <returns></returns>
-		public string DoCleanRequest(string uri) // Build for doing $count function
+		public Task<string> DoCleanRequest(string uri) // Build for doing $count function
 		{
 			var request = (HttpWebRequest)WebRequest.Create(uri);
 			request.ServicePoint.Expect100Continue = false;
@@ -182,13 +186,13 @@ namespace ExactOnline.Client.Sdk.Helpers
 			return GetResponse(request);
 		}
 
-		public int GetCurrentDivision(string website)
+		public async Task<int> GetCurrentDivision(string website)
 		{
 			var url = website + "/api/v1/current/Me";
 			const string oDataQuery = "$select=CurrentDivision";
 
-			var request = CreateRequest(url, oDataQuery, RequestTypeEnum.GET);
-			var response = GetResponse(request);
+			var request = await CreateRequest(url, oDataQuery, RequestTypeEnum.GET);
+			var response = await GetResponse(request);
 			var jsonObject = JsonConvert.DeserializeObject<dynamic>(response);
 
 			return (int)jsonObject.d["results"][0]["CurrentDivision"].Value;
@@ -198,9 +202,11 @@ namespace ExactOnline.Client.Sdk.Helpers
 
 		#region Private methods
 
-		private HttpWebRequest CreateRequest(string url, string oDataQuery, RequestTypeEnum method, string acceptContentType = "application/json")
+		private async Task<HttpWebRequest> CreateRequest(string url, string oDataQuery, RequestTypeEnum method, string acceptContentType = "application/json")
 		{
-			if (!string.IsNullOrEmpty(oDataQuery))
+            await this.WaitForRateLimit();
+
+            if (!string.IsNullOrEmpty(oDataQuery))
 			{
 				url += "?" + oDataQuery;
 			}
@@ -218,7 +224,24 @@ namespace ExactOnline.Client.Sdk.Helpers
 			return request;
 		}
 
-		private string GetResponse(HttpWebRequest request)
+        private async Task WaitForRateLimit()
+        {
+            EolResponseHeader eolResponseHeader = _client.EolResponseHeader;
+            var remaining = eolResponseHeader?.MinutelyRateLimit?.Remaining;
+            if (!remaining.HasValue || remaining.Value > 0 || !_client.EolResponseHeader.MinutelyRateLimit.Reset.HasValue)
+                return;
+
+            TimeSpan delay = DateTimeOffset.FromUnixTimeMilliseconds(_client.EolResponseHeader.MinutelyRateLimit.Reset.Value).LocalDateTime - DateTime.Now;
+            if (delay.TotalMilliseconds <= 0.0)
+                return;
+
+            if (_delayFunc != null)
+                _delayFunc(delay.TotalMilliseconds);
+
+            await Task.Delay(delay);
+        }
+
+        private async Task<string> GetResponse(HttpWebRequest request)
 		{
 			// Grab the response
 			var responseValue = string.Empty;
@@ -233,14 +256,14 @@ namespace ExactOnline.Client.Sdk.Helpers
 		        // Get response. If this fails: Throw the correct Exception (for testability)
 		        try
 		        {
-		            response = request.GetResponse();
+		            response = await request.GetResponseAsync();
 
 		            using (var responseStream = response.GetResponseStream())
 		            {
 		                if (responseStream != null)
 		                {
 		                    var reader = new StreamReader(responseStream);
-		                    responseValue = reader.ReadToEnd();
+		                    responseValue = await reader.ReadToEndAsync();
 		                }
 		            }
 		            break;
@@ -285,18 +308,24 @@ namespace ExactOnline.Client.Sdk.Helpers
         {
             _client.EolResponseHeader = new Models.EolResponseHeader
             {
-                RateLimit = new Models.RateLimit
+                DailyRateLimit = new RateLimit()
                 {
                     Limit = response.Headers["X-RateLimit-Limit"].ToNullableInt(),
                     Remaining = response.Headers["X-RateLimit-Remaining"].ToNullableInt(),
                     Reset = response.Headers["X-RateLimit-Reset"].ToNullableLong()
+                },
+                MinutelyRateLimit = new RateLimit()
+                {
+                    Limit = response.Headers["X-RateLimit-Minutely-Limit"].ToNullableInt(),
+                    Remaining = response.Headers["X-RateLimit-Minutely-Remaining"].ToNullableInt(),
+                    Reset = response.Headers["X-RateLimit-Minutely-Reset"].ToNullableLong()
                 }
             };
 
             
         }
         
-        private Stream GetResponseFile(HttpWebRequest request)
+        private async Task<Stream> GetResponseFile(HttpWebRequest request)
         {
             Trace.WriteLine("RESPONSE");
             WebResponse response = null;
@@ -304,7 +333,7 @@ namespace ExactOnline.Client.Sdk.Helpers
             // Get response. If this fails: Throw the correct Exception (for testability)
             try
             {
-                response = request.GetResponse();
+                response = await request.GetResponseAsync();
                 SetEolResponseHeaders(response);
                 return response.GetResponseStream();
             }
@@ -366,16 +395,16 @@ namespace ExactOnline.Client.Sdk.Helpers
         /// <param name="uri"></param>
         /// <param name="oDataQuery"></param>
         /// <returns></returns>
-        public string DoCleanRequest(string uri, string oDataQuery)
+        public async Task<string> DoCleanRequest(string uri, string oDataQuery)
 		{
 			if (string.IsNullOrEmpty(uri)) throw new ArgumentException("Cannot perform request with empty endpoint");
 
-			var request = CreateRequest(uri, oDataQuery, RequestTypeEnum.GET, null);
+			var request = await CreateRequest(uri, oDataQuery, RequestTypeEnum.GET, null);
 
 			Trace.WriteLine("GET ");
 			Trace.WriteLine(request.RequestUri);
 
-			return GetResponse(request);
+			return await GetResponse(request);
 		}
 		#endregion
 

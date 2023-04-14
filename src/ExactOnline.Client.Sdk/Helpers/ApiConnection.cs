@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Threading.Tasks;
 using ExactOnline.Client.Sdk.Interfaces;
 
 namespace ExactOnline.Client.Sdk.Helpers
@@ -40,9 +41,9 @@ namespace ExactOnline.Client.Sdk.Helpers
 		/// </summary>
 		/// <param name="parameters">oData Parameters</param>
 		/// <returns>Json String</returns>
-		public string Get(string parameters)
+		public async Task<string> Get(string parameters)
 		{
-			string response = _conn.DoGetRequest(EndPoint, parameters);
+			string response = await _conn.DoGetRequest(EndPoint, parameters);
 			if (response.Contains("Object moved"))
 			{
 				throw new Exception("Invalid Access Token");
@@ -54,9 +55,9 @@ namespace ExactOnline.Client.Sdk.Helpers
         /// Perform a GET (Read) request on the API
         /// </summary>
         /// <returns>Stream</returns>
-        public Stream GetFile()
+        public async Task<Stream> GetFile()
         {
-            Stream response = _conn.DoGetFileRequest(EndPoint);
+            Stream response = await _conn.DoGetFileRequest(EndPoint);
             return response;
         }
 
@@ -67,7 +68,7 @@ namespace ExactOnline.Client.Sdk.Helpers
         /// <param name="guid">Global Unique Identifier of the entity</param>
         /// <param name="parameters">Parameters</param>
         /// <returns>Json String</returns>
-        public string GetEntity(string keyname, string guid, string parameters)
+        public async Task<string> GetEntity(string keyname, string guid, string parameters)
 		{
 			if (guid == string.Empty || keyname == string.Empty)
 			{
@@ -85,7 +86,7 @@ namespace ExactOnline.Client.Sdk.Helpers
 				endpoint += "(" + guid + ")";
 			}
 
-			string response = _conn.DoGetRequest(endpoint, parameters);
+			string response = await _conn.DoGetRequest(endpoint, parameters);
 			return response;
 		}
 
@@ -94,12 +95,12 @@ namespace ExactOnline.Client.Sdk.Helpers
 		/// </summary>
 		/// <param name="data">Json String that representes new entity</param>
 		/// <returns>Result from the API in Json Format</returns>
-		public string Post(string data)
+		public async Task<string> Post(string data)
 		{
 			string response;
 			if (data != string.Empty)
 			{
-				response = _conn.DoPostRequest(EndPoint, data);
+				response = await _conn.DoPostRequest(EndPoint, data);
 			}
 			else
 			{
@@ -115,7 +116,7 @@ namespace ExactOnline.Client.Sdk.Helpers
 		/// <param name="guid">Global Unique Identifier of the entity</param>
 		/// <param name="data">Json String that represents the new state of the entity</param>
 		/// <returns>True if succeeded</returns>
-		public Boolean Put(string keyName, string guid, string data)
+		public async Task<bool> Put(string keyName, string guid, string data)
 		{
 			Boolean returnValue = false;
 			if (guid != string.Empty && data != string.Empty && keyName != string.Empty)
@@ -125,7 +126,7 @@ namespace ExactOnline.Client.Sdk.Helpers
 				if (keyName.Contains("ID")) endpoint += "(guid'" + guid + "')";
 				else endpoint += "(" + guid + ")";
 
-				string response = _conn.DoPutRequest(endpoint, data);
+				string response = await _conn.DoPutRequest(endpoint, data);
 
 				// Reponse is empty on success
 				if (!response.Contains("error"))
@@ -146,9 +147,9 @@ namespace ExactOnline.Client.Sdk.Helpers
 		/// <param name="keyName">Name of key field</param>
 		/// <param name="guid">Global Unique Identifier of the entity</param>
 		/// <returns>True if succeeded</returns>
-		public Boolean Delete(string keyName, string guid)
+		public async Task<bool> Delete(string keyName, string guid)
 		{
-			Boolean returnValue = false;
+			var returnValue = false;
 			if (guid != string.Empty && keyName != string.Empty)
 			{
 				// Create correct endpoint
@@ -157,7 +158,7 @@ namespace ExactOnline.Client.Sdk.Helpers
 				else endpoint += "(" + guid + ")";
 
 				// Create endpoint and get response
-				string response = _conn.DoDeleteRequest(endpoint);
+				string response = await _conn.DoDeleteRequest(endpoint);
 
 				// Reponse is empty on success
 				if (response == string.Empty)
@@ -177,9 +178,9 @@ namespace ExactOnline.Client.Sdk.Helpers
 		/// </summary>
 		/// <param name="parameters">Parameters</param>
 		/// <returns></returns>
-		public int Count(string parameters)
+		public async Task<int> Count(string parameters)
 		{
-			string response = _conn.DoCleanRequest(EndPoint + "/$count", parameters);
+			string response = await _conn.DoCleanRequest(EndPoint + "/$count", parameters);
 			return int.Parse(response);
 		}
 	}

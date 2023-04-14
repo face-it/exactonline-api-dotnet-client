@@ -1,20 +1,21 @@
 ﻿using System;
+using System.Threading.Tasks;
 
 namespace ExactOnline.Client.Sdk.Interfaces
 {
 	public interface IApiConnection
 	{
-		string Get(string parameters);
+		Task<string> Get(string parameters);
 
-		string GetEntity(string keyname, string guid, string parameters);
+		Task<string> GetEntity(string keyname, string guid, string parameters);
 
-		string Post(string data);
+		Task<string> Post(string data);
 
-		Boolean Put(string keyName, string guid, string data);
+		Task<bool> Put(string keyName, string guid, string data);
 
-		Boolean Delete(string keyName, string guid);
+		Task<bool> Delete(string keyName, string guid);
 
-		int Count(string parameters);
+		Task<int> Count(string parameters);
 
 	}
 }

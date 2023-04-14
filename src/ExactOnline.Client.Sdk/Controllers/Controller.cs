@@ -6,6 +6,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 
 namespace ExactOnline.Client.Sdk.Controllers
 {
@@ -58,21 +59,9 @@ namespace ExactOnline.Client.Sdk.Controllers
 		/// <summary>
 		/// Returns the number of entities of the current type
 		/// </summary>
-		public int Count(string query)
+		public Task<int> Count(string query)
 		{
 			return _conn.Count(query);
-		}
-
-		/// <summary>
-		/// Gets specific collection of entities.
-		/// Please notice that this method will return at max 60 entities. 
-		/// </summary>
-		/// <param name="query">oData query</param>
-		/// <returns>List of entity Objects</returns>
-		public List<T> Get(string query)
-		{
-			string skipToken = string.Empty;
-			return Get(query, ref skipToken);
 		}
 
 		/// <summary>
@@ -82,10 +71,10 @@ namespace ExactOnline.Client.Sdk.Controllers
 		/// <param name="query">oData query</param>
 		/// <param name="skipToken">The skip token to be used to get the next page of data.</param>
 		/// <returns>List of entity Objects</returns>
-		public List<T> Get(string query, ref string skipToken)
+		public async Task<GetResult<T>> Get(string query, string skipToken)
 		{
 			// Get the response and convert it to a list of entities of the specific type
-			string response = _conn.Get(query);
+			string response = await _conn.Get(query);
 
 			skipToken = ApiResponseCleaner.GetSkipToken(response);
 			response = ApiResponseCleaner.GetJsonArray(response);
@@ -100,7 +89,7 @@ namespace ExactOnline.Client.Sdk.Controllers
 			}
 
 			// Convert list
-			return entities.ConvertAll(x => x);
+			return new GetResult<T>(entities.ConvertAll(x => x), skipToken);
 		}
 
 		/// <summary>
@@ -109,7 +98,7 @@ namespace ExactOnline.Client.Sdk.Controllers
 		/// <param name="guid">Global Unique Identifier of the entity</param>
 		/// <param name="parameters">parameters</param>
 		/// <returns>Entity if exists. Null if entity not exists.</returns>
-		public T GetEntity(string guid, string parameters)
+		public async Task<T> GetEntity(string guid, string parameters)
 		{
 			if (guid.Contains('}') || guid.Contains('{'))
 			{
@@ -117,7 +106,7 @@ namespace ExactOnline.Client.Sdk.Controllers
 			}
 
 			// Convert the resonse to an object of the specific type
-			var response = _conn.GetEntity(_keyname, guid, parameters);
+			var response = await _conn.GetEntity(_keyname, guid, parameters);
 			response = ApiResponseCleaner.GetJsonObject(response);
 			var ec = new EntityConverter();
 			var entity = ec.ConvertJsonToObject<T>(response);
@@ -132,7 +121,7 @@ namespace ExactOnline.Client.Sdk.Controllers
 		/// </summary>
 		/// <param name="entity">Entity to create</param>
 		/// <returns>True if succeed</returns>
-		public Boolean Create(ref T entity)
+		public async Task<Tuple<bool, T>> Create(T entity)
 		{
 			var supportedActions = GetSupportedActions(entity);
 			if (!supportedActions.CanCreate)
@@ -147,7 +136,7 @@ namespace ExactOnline.Client.Sdk.Controllers
 			var json = converter.ConvertObjectToJson(emptyEntity, entity, _entityControllerDelegate);
 
 			// Send to API
-			var response = _conn.Post(json);
+			var response = await _conn.Post(json);
 			if (!response.Contains("error"))
 			{
 				created = true;
@@ -167,10 +156,10 @@ namespace ExactOnline.Client.Sdk.Controllers
 				if (supportedActions.CanRead)
 				{
 					// Get entity with linked entities (API Response for creating does not return the linked entities)
-					entity = GetEntity(GetIdentifierValue(entity), _expandfield);
+					entity = await GetEntity(GetIdentifierValue(entity), _expandfield);
 				}
 			}
-			return created;
+			return new Tuple<bool, T>(created, entity);
 		}
 
 		/// <summary>
@@ -178,7 +167,7 @@ namespace ExactOnline.Client.Sdk.Controllers
 		/// </summary>
 		/// <param name="entity">Entity to update</param>
 		/// <returns>True if succeeded</returns>
-		public Boolean Update(T entity)
+		public Task<bool> Update(T entity)
 		{
 			if (entity == null)
 			{
@@ -204,7 +193,7 @@ namespace ExactOnline.Client.Sdk.Controllers
 		/// </summary>
 		/// <param name="entity"></param>
 		/// <returns>True if succeeded</returns>
-		public Boolean Delete(T entity)
+		public async Task<bool> Delete(T entity)
 		{
 			if (entity == null)
 			{
@@ -219,7 +208,7 @@ namespace ExactOnline.Client.Sdk.Controllers
 			var associatedController = (EntityController)_entityControllers[entityIdentifier];
 
 			var returnValue = false;
-			if (associatedController.Delete())
+			if (await associatedController.Delete())
 			{
 				returnValue = true;
 				_entityControllers.Remove(entityIdentifier);

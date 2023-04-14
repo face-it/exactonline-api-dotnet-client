@@ -1,24 +1,36 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace ExactOnline.Client.Sdk.Interfaces
 {
 	public interface IController<T>
 	{
-		List<T> Get(string query);
+		Task<T> GetEntity(string guid, string parameters);
 
-		T GetEntity(string guid, string parameters);
+        Task<Tuple<bool, T>> Create(T entity);
 
-		Boolean Create(ref T entity);
+		Task<bool> Update(T entity);
 
-		Boolean Update(T entity);
+		Task<bool> Delete(T entity);
 
-		Boolean Delete(T entity);
-
-		int Count(string query); // For $count function API
+		Task<int> Count(string query); // For $count function API
 
 		void RegistrateLinkedEntityField(string fieldname);
-
-		List<T> Get(string query, ref string skipToken);
+    
+        Task<GetResult<T>> Get(string query, string skipToken);
 	}
+
+    public class GetResult<TModel>
+    {
+        public GetResult(List<TModel> result, string skipToken)
+        {
+            this.Result = result;
+            this.SkipToken = skipToken;
+        }
+
+        public List<TModel> Result { get; }
+
+        public string SkipToken { get; }
+    }
 }
