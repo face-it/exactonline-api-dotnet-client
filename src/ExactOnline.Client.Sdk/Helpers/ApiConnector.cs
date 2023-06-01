@@ -19,9 +19,9 @@ namespace ExactOnline.Client.Sdk.Helpers
 	public class ApiConnector : IApiConnector
 	{
         private readonly Action<double> _delayFunc;
-        private readonly Func<string> _accessTokenDelegate;
+        private readonly Func<Task<string>> _accessTokenDelegate;
         private readonly ExactOnlineClient _client;
-	    private readonly Func<int, bool> _refreshTokenDelegate;
+	    private readonly Func<int, Task<bool>> _refreshTokenDelegate;
 
 	    #region Constructor
 
@@ -32,8 +32,8 @@ namespace ExactOnline.Client.Sdk.Helpers
 	    /// <param name="client"></param>
 	    /// <param name="refreshTokenDelegate"></param>
 	    /// <param name="delayFunc"></param>
-	    public ApiConnector(Func<string> accessTokenDelegate, ExactOnlineClient client,
-	        Func<int, bool> refreshTokenDelegate = null, Action<double> delayFunc = null)
+	    public ApiConnector(Func<Task<string>> accessTokenDelegate, ExactOnlineClient client,
+	        Func<int, Task<bool>> refreshTokenDelegate = null, Action<double> delayFunc = null)
 		{
             _client = client;
 		    _refreshTokenDelegate = refreshTokenDelegate;
@@ -272,7 +272,8 @@ namespace ExactOnline.Client.Sdk.Helpers
 		        {
 		            var statusCode = ((HttpWebResponse) ex.Response).StatusCode;
                     if ((statusCode == HttpStatusCode.Forbidden || statusCode == HttpStatusCode.Unauthorized) &&
-                        _refreshTokenDelegate?.Invoke(retries++) == true)
+                        _refreshTokenDelegate != null &&
+                        await _refreshTokenDelegate.Invoke(retries++))
                     {
                         continue;
                     }
@@ -306,7 +307,7 @@ namespace ExactOnline.Client.Sdk.Helpers
 
         private void SetRateLimitHeaders(WebResponse response)
         {
-            _client.EolResponseHeader = new Models.EolResponseHeader
+            _client.EolResponseHeader = new EolResponseHeader
             {
                 DailyRateLimit = new RateLimit()
                 {

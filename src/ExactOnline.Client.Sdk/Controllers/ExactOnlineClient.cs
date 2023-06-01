@@ -26,21 +26,22 @@ namespace ExactOnline.Client.Sdk.Controllers
 
         #region Constructors
 
-	    /// <summary>
-	    /// Create instance of ExactClient
-	    /// </summary>
-	    /// <param name="exactOnlineUrl">The Exact Online URL for your country</param>
-	    /// <param name="accesstokenDelegate">Delegate that will be executed the access token is expired</param>
-	    /// <param name="refreshTokenDelegate">Delegate that will retrieve the amount of retries (a counter), and should return true if the token is refreshed</param>
-	    public ExactOnlineClient(string exactOnlineUrl, Func<string> accesstokenDelegate, Func<int, bool> refreshTokenDelegate = null, Action<double> delayFunc = null)
+        /// <summary>
+        /// Create instance of ExactClient
+        /// </summary>
+        /// <param name="exactOnlineUrl">The Exact Online URL for your country</param>
+        /// <param name="accesstokenDelegate">Delegate that will be executed the access token is expired</param>
+        /// <param name="refreshTokenDelegate">Delegate that will retrieve the amount of retries (a counter), and should return true if the token is refreshed</param>
+        /// <param name="delayFunc"></param>
+        public ExactOnlineClient(string exactOnlineUrl, Func<Task<string>> accesstokenDelegate, Func<int, Task<bool>> refreshTokenDelegate = null, Action<double> delayFunc = null)
 		{
 			_apiConnector = new ApiConnector(accesstokenDelegate, this, refreshTokenDelegate, delayFunc);
 
 			if (!exactOnlineUrl.EndsWith("/")) exactOnlineUrl += "/";
 			_exactOnlineApiUrl = exactOnlineUrl + "api/v1/";
 		}
-		
-        public async Task Initialize(int division)
+
+        protected async Task Initialize(int division)
         {
             _division = (division > 0) ? division : await GetDivision();
 
@@ -83,7 +84,7 @@ namespace ExactOnline.Client.Sdk.Controllers
         /// return the division number of the current user
         /// </summary>
         /// <returns>Division number</returns>
-        public async Task<int> GetDivision()
+        private async Task<int> GetDivision()
 		{
 			if (_division > 0)
 			{
