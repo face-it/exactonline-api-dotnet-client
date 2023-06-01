@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Net;
 
 namespace ExactOnline.Client.Sdk.Exceptions
 {

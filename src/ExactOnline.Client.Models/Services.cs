@@ -1,6 +1,4 @@
 using System.Collections.Generic;
-
-using ExactOnline.Client.Models;
 using ExactOnline.Client.Models.Accountancy;
 using ExactOnline.Client.Models.Activities;
 using ExactOnline.Client.Models.Assets;

@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System;
 
 namespace ExactOnline.Client.Models.HRM
