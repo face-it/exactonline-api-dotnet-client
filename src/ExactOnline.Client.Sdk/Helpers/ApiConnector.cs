@@ -176,14 +176,14 @@ namespace ExactOnline.Client.Sdk.Helpers
 		/// </summary>
 		/// <param name="uri"></param>
 		/// <returns></returns>
-		public Task<string> DoCleanRequest(string uri) // Build for doing $count function
+		public async Task<string> DoCleanRequest(string uri) // Build for doing $count function
 		{
 			var request = (HttpWebRequest)WebRequest.Create(uri);
 			request.ServicePoint.Expect100Continue = false;
 			request.Method = RequestTypeEnum.GET.ToString();
 			request.ContentType = "application/json";
-			request.Headers.Add("Authorization", "Bearer " + _accessTokenDelegate());
-			return GetResponse(request);
+			request.Headers.Add("Authorization", "Bearer " + await _accessTokenDelegate());
+			return await GetResponse(request);
 		}
 
 		public async Task<int> GetCurrentDivision(string website)
@@ -204,7 +204,7 @@ namespace ExactOnline.Client.Sdk.Helpers
 
 		private async Task<HttpWebRequest> CreateRequest(string url, string oDataQuery, RequestTypeEnum method, string acceptContentType = "application/json")
 		{
-            await this.WaitForRateLimit();
+            await WaitForRateLimit();
 
             if (!string.IsNullOrEmpty(oDataQuery))
 			{
@@ -219,7 +219,7 @@ namespace ExactOnline.Client.Sdk.Helpers
 			{
 				request.Accept = acceptContentType;
 			}
-			request.Headers.Add("Authorization", "Bearer " + _accessTokenDelegate());
+			request.Headers.Add("Authorization", "Bearer " + await _accessTokenDelegate());
 
 			return request;
 		}
