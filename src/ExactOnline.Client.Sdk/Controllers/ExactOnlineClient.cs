@@ -41,11 +41,11 @@ namespace ExactOnline.Client.Sdk.Controllers
 			_exactOnlineApiUrl = exactOnlineUrl + "api/v1/";
 		}
 
-        protected async Task Initialize(int division)
+        public async Task Initialize(int division)
         {
             _division = (division > 0) ? division : await GetDivision();
 
-            string serviceRoot = _exactOnlineApiUrl + _division + "/";
+            var serviceRoot = _exactOnlineApiUrl + _division + "/";
             _controllers = new ControllerList(_apiConnector, serviceRoot);
         }
 
